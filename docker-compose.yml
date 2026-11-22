@@ -9,13 +9,12 @@ services:
       VECTOR_PATH: /data/chroma
       UPLOAD_PATH: /data/uploads
     volumes:
-      - bizmind_data:/data  web:
+      - bizmind_data:/data
+  web:
     build: ./frontend
     ports:
       - "3000:80"
     depends_on:
       - api
-
-
 volumes:
   bizmind_data:
