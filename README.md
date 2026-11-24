@@ -5,6 +5,12 @@
 [![Backend checks](https://github.com/nisa3131/BizMind-AI/actions/workflows/backend.yml/badge.svg)](https://github.com/nisa3131/BizMind-AI/actions/workflows/backend.yml)
 [![Frontend build](https://github.com/nisa3131/BizMind-AI/actions/workflows/frontend.yml/badge.svg)](https://github.com/nisa3131/BizMind-AI/actions/workflows/frontend.yml)
 
+[![Live Demo](https://img.shields.io/badge/Live_Demo-Render-6756D6?style=for-the-badge)](https://bizmind-ai-gc1c.onrender.com)
+
+[Open live dashboard](https://bizmind-ai-gc1c.onrender.com) · [API documentation](https://bizmind-ai-gc1c.onrender.com/docs) · [Health check](https://bizmind-ai-gc1c.onrender.com/api/v1/health)
+
+The hosted demo requires a private invitation code for registration. Contact the project owner for a guided demonstration. Free hosting may cold-start and reset temporary data.
+
 ## Overview
 
 BizMind AI turns business PDFs and text FAQs into a searchable support knowledge base. Owners manage their own documents and ask questions with source references. Local semantic retrieval uses ChromaDB; hosted generation is optional. A lightweight lexical mode supports resource-constrained demonstrations.
