@@ -9,6 +9,7 @@ from pydantic import BaseModel, EmailStr, Field
 from app.db import db_connection
 from app.security import create_token, current_user, hasher
 from app.rag import ingest, retrieve
+from app.answer import answer_question
 
 app = FastAPI(title="BizMind AI", version="0.2.0")
 
@@ -49,26 +50,28 @@ def login(body: Login):
 
 @app.post("/api/v1/documents", status_code=201)
 async def upload(file: UploadFile = File(...), user: dict = Depends(current_user)):
-    if file.content_type != "application/pdf" or not file.filename.lower().endswith(".pdf"):
-        raise HTTPException(415, "PDF only")
+    if file.content_type not in ("application/pdf", "text/plain") or not (file.filename or "").lower().endswith((".pdf", ".txt")):
+        raise HTTPException(415, "PDF or plain text FAQ only")
     content = await file.read(10 * 1024 * 1024 + 1)
     if len(content) > 10 * 1024 * 1024:
         raise HTTPException(413, "Maximum file size is 10 MB")
     try:
-        pdf = fitz.open(stream=content, filetype="pdf")
-        if pdf.page_count > 200:
-            raise HTTPException(413, "Maximum 200 pages")
-        text = "\n".join(page.get_text() for page in pdf)
-        pdf.close()
+        if file.filename.lower().endswith(".txt"):
+            text = content.decode("utf-8")
+        else:
+            with fitz.open(stream=content, filetype="pdf") as pdf:
+                if pdf.page_count > 200:
+                    raise HTTPException(413, "Maximum 200 pages")
+                text = "\n".join(page.get_text() for page in pdf)
     except HTTPException:
         raise
     except Exception:
-        raise HTTPException(422, "Invalid PDF")
+        raise HTTPException(422, "Invalid PDF or UTF-8 text")
     if not text.strip():
-        raise HTTPException(422, "No extractable text in PDF")
+        raise HTTPException(422, "No extractable text in document")
     directory = Path(os.getenv("UPLOAD_PATH","/data/uploads")) / str(user["tenant_id"])
     directory.mkdir(parents=True,exist_ok=True)
-    path = directory / (uuid.uuid4().hex + ".pdf")
+    path = directory / (uuid.uuid4().hex + Path(file.filename).suffix.lower())
     path.write_bytes(content)
     with db_connection() as db:
         document_id = db.execute("INSERT INTO documents(tenant_id,filename,storage_path) VALUES(?,?,?)",
@@ -87,17 +90,12 @@ def documents(user: dict = Depends(current_user)):
 def chat(body: Question, user: dict = Depends(current_user)):
     started = time.perf_counter()
     matches = retrieve(user["tenant_id"],body.question)
-    if not matches:
-        answer = "I couldn't find an answer in the uploaded documents."
-    else:
-        # Retrieval-only safe fallback until an optional LLM provider is configured.
-        answer = "Relevant passages from your documents:\n" + "\n\n".join(
-            f"[{i+1}] {item['text'][:700]}" for i,item in enumerate(matches))
+    answer, answer_mode = answer_question(body.question, matches)
     latency = round((time.perf_counter()-started)*1000,2)
     with db_connection() as db:
         db.execute("INSERT INTO queries(tenant_id,latency_ms) VALUES(?,?)",
                    (user["tenant_id"],latency))
-    return {"answer":answer,"citations":[{"source":x["source"],"document_id":x["document_id"],
+    return {"answer":answer,"answer_mode":answer_mode,"citations":[{"source":x["source"],"document_id":x["document_id"],
               "chunk":x["chunk"]} for x in matches], "latency_ms":latency}
 
 @app.get("/api/v1/analytics")
