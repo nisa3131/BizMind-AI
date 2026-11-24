@@ -31,3 +31,9 @@ React → Nginx → FastAPI → JWT authorization → SQLite and tenant-filtered
 ## Current limitations
 
 Prototype, not a production security guarantee. Citation numbering is checked, not semantic entailment. Scanned PDFs need OCR outside this application. SQLite is used for the local demo; PostgreSQL migration, rate limiting, observability and production deployment remain future work.
+
+## Interview resources
+
+[Architecture diagram, demo walkthrough, and interview questions](docs/INTERVIEW_GUIDE.md).
+
+[Sample FAQ for a local demo](examples/demo-faq.txt).
