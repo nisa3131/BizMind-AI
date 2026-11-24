@@ -1,16 +1,20 @@
 import os
-import chromadb
-from chromadb.utils.embedding_functions import DefaultEmbeddingFunction
+from app import lexical
 
 VECTOR_PATH = os.getenv("VECTOR_PATH", "/data/chroma")
 
 def collection():
+    import chromadb
+    from chromadb.utils.embedding_functions import DefaultEmbeddingFunction
     client = chromadb.PersistentClient(path=VECTOR_PATH)
     return client.get_or_create_collection("bizmind_chunks", embedding_function=DefaultEmbeddingFunction())
 
 def ingest(tenant_id: int, document_id: int, text: str, filename: str) -> int:
     from langchain_text_splitters import RecursiveCharacterTextSplitter
     chunks = RecursiveCharacterTextSplitter(chunk_size=900, chunk_overlap=120).split_text(text)
+    if os.getenv('RAG_BACKEND') == 'lexical':
+        lexical.add_chunks(tenant_id, document_id, chunks, filename)
+        return len(chunks)
     if chunks:
         collection().upsert(
             ids=[f"{tenant_id}:{document_id}:{i}" for i in range(len(chunks))],
@@ -20,6 +24,8 @@ def ingest(tenant_id: int, document_id: int, text: str, filename: str) -> int:
     return len(chunks)
 
 def retrieve(tenant_id: int, question: str) -> list[dict]:
+    if os.getenv('RAG_BACKEND') == 'lexical':
+        return lexical.search(tenant_id, question)
     coll = collection()
     if not coll.get(where={"tenant_id": tenant_id}, limit=1, include=[])["ids"]:
         return []
