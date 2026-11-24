@@ -2,8 +2,10 @@ services:
   api:
     build: ./backend
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
     environment:
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_MODEL: ${OPENAI_MODEL:-}
       JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in .env}
       DATABASE_PATH: /data/bizmind.sqlite3
       VECTOR_PATH: /data/chroma
@@ -13,7 +15,7 @@ services:
   web:
     build: ./frontend
     ports:
-      - "3000:80"
+      - "127.0.0.1:3000:80"
     depends_on:
       - api
 volumes:
