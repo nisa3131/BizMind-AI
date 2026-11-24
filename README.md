@@ -103,3 +103,7 @@ Portfolio prototype. Citation identifiers are not proof of entailment. No OCR, p
 ## Interview resources
 
 [Architecture and interview walkthrough](docs/INTERVIEW_GUIDE.md) · [Sample FAQ](examples/demo-faq.txt)
+
+## Render cloud demo configuration
+
+[Render deployment, environment variables, health checks and live demo verification](docs/FREE_DEPLOYMENT.md). The single-container Docker build is separate from the local Docker Compose setup. Keep all credentials private.
