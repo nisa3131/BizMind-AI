@@ -2,6 +2,8 @@
 
 The portfolio demo uses a single Docker image containing FastAPI and the React build. The local Docker Compose setup remains separate.
 
+Hosted demo: [Open dashboard](https://bizmind-ai-gc1c.onrender.com) · [API docs](https://bizmind-ai-gc1c.onrender.com/docs) · [Health check](https://bizmind-ai-gc1c.onrender.com/api/v1/health).
+
 ## Render configuration
 
 | Setting | Value |
