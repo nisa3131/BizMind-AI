@@ -1,9 +1,9 @@
 import os
-from pathlib import Path
 import chromadb
 from chromadb.utils.embedding_functions import DefaultEmbeddingFunction
 
 VECTOR_PATH = os.getenv("VECTOR_PATH", "/data/chroma")
+
 def collection():
     client = chromadb.PersistentClient(path=VECTOR_PATH)
     return client.get_or_create_collection("bizmind_chunks", embedding_function=DefaultEmbeddingFunction())
@@ -21,9 +21,10 @@ def ingest(tenant_id: int, document_id: int, text: str, filename: str) -> int:
 
 def retrieve(tenant_id: int, question: str) -> list[dict]:
     coll = collection()
-    if coll.count() == 0:
+    if not coll.get(where={"tenant_id": tenant_id}, limit=1, include=[])["ids"]:
         return []
-    result = coll.query(query_texts=[question], n_results=min(4,coll.count()),
+    result = coll.query(query_texts=[question], n_results=4,
                         where={"tenant_id": tenant_id})
     return [{"text": text, "source": meta["filename"], "document_id": meta["document_id"],
-             "chunk": meta["chunk"]} for text,meta in zip(result["documents"][0], result["metadatas"][0])]
+             "chunk": meta["chunk"]} for text,meta in zip(result["documents"][0], result["metadatas"][0])
+            if meta["tenant_id"] == tenant_id]
