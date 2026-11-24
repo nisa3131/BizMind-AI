@@ -1,4 +1,5 @@
 import io
+import hmac
 import os
 import time
 import uuid
@@ -17,6 +18,7 @@ class Signup(BaseModel):
     business_name: str = Field(min_length=2, max_length=150)
     email: EmailStr
     password: str = Field(min_length=12, max_length=128)
+    invite_code: str = Field(default='', max_length=200)
 
 class Login(BaseModel):
     email: EmailStr
@@ -31,6 +33,9 @@ def health():
 
 @app.post("/api/v1/auth/signup", status_code=201)
 def signup(body: Signup):
+    invite = os.getenv('BIZMIND_INVITE_CODE','')
+    if invite and not hmac.compare_digest(body.invite_code.encode(), invite.encode()):
+        raise HTTPException(403, 'Invalid demo invite code')
     with db_connection() as db:
         if db.execute("SELECT 1 FROM users WHERE email=?", (body.email.lower(),)).fetchone():
             raise HTTPException(409, "Email already registered")
@@ -52,9 +57,10 @@ def login(body: Login):
 async def upload(file: UploadFile = File(...), user: dict = Depends(current_user)):
     if file.content_type not in ("application/pdf", "text/plain") or not (file.filename or "").lower().endswith((".pdf", ".txt")):
         raise HTTPException(415, "PDF or plain text FAQ only")
-    content = await file.read(10 * 1024 * 1024 + 1)
-    if len(content) > 10 * 1024 * 1024:
-        raise HTTPException(413, "Maximum file size is 10 MB")
+    max_bytes = int(os.getenv('MAX_UPLOAD_BYTES', str(10 * 1024 * 1024)))
+    content = await file.read(max_bytes + 1)
+    if len(content) > max_bytes:
+        raise HTTPException(413, f'Maximum file size is {max_bytes} bytes')
     try:
         if file.filename.lower().endswith(".txt"):
             text = content.decode("utf-8")
